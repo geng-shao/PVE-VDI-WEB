@@ -41,7 +41,7 @@ VDI 云桌面平台 —— 完整系统架构
                               │  模板克隆、快照、开机/关机      │
                               └─────────────────────────────┘
 
-![image](public/gongneng.png)
+![image](public/gongnengtu.png)
 
 核心交互流
 管理员/用户 通过浏览器访问 Nginx 80 端口。
