@@ -2,6 +2,9 @@
 PVE服务器上创建VDI桌面主机的自动化部署管理平台，后端自动对接Guacamole远程桌面网关，实现集中管理
 VDI 云桌面平台 —— 完整系统架构
 
+系统安装教程：https://www.bilibili.com/video/BV1CaM36bEG5/
+系统功能介绍演示：<iframe src="//player.bilibili.com/player.html?isOutside=true&aid=116871630162431&bvid=BV1svTX6yEGn&cid=39696600217&p=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+
 声明：所用到的部分开源软件，未作任何修改，仅作环境集成
 
 同时也感谢大家支持，如有不完善以及问题请大家指出，谢谢！
