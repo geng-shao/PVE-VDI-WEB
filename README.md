@@ -11,6 +11,13 @@ VDI 云桌面平台 —— 完整系统架构
 
 如果要商用，请提前告知，并支付象征性的版权费。
 
+
+微信交流：
+![image](https://github.com/geng-shao/PVE-VDI-WEB/blob/main/wx.png)
+
+QQ:150028188
+
+
 如有不完善以及问题请大家指出，谢谢！
 
 
