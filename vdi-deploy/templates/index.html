@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>云桌面管理</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    <style>
+        .stat-card { transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); }
+    </style>
+</head>
+
+<body>
+<div class="container-fluid mt-4">
+    <h2>Proxmox + Guacamole 云桌面管理</h2>
+    <hr>
+    {% with m=get_flashed_messages(with_categories=true) %}
+      {% for c,msg in m %}
+        <div class="alert alert-{{c}} alert-dismissible fade show">{{msg}}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+      {% endfor %}
+    {% endwith %}
+
+    <!-- 资源监控看板 -->
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-2 mb-4">
+        <div class="col"><div class="card shadow-sm stat-card h-100 border-primary border-start border-3"><div class="card-body text-center p-2"><h6 class="text-muted mb-1">CPU</h6><h4 class="mb-1">{{node_status.cpu if node_status else 'N/A'}}%</h4><div class="progress" style="height:4px"><div class="progress-bar bg-primary" style="width:{{node_status.cpu if node_status else 0}}%"></div></div><small>{{node_status.cpu_cores if node_status else 0}} 核心</small></div></div></div>
+        <div class="col"><div class="card shadow-sm stat-card h-100 border-info border-start border-3"><div class="card-body text-center p-2"><h6 class="text-muted mb-1">内存</h6><h4 class="mb-1">{{node_status.memory_percent if node_status else 'N/A'}}%</h4><div class="progress" style="height:4px"><div class="progress-bar bg-info" style="width:{{node_status.memory_percent if node_status else 0}}%"></div></div><small class="text-truncate d-block">{%if node_status%}{{node_status.memory_used_str}}/{{node_status.memory_total_str}}{%endif%}</small></div></div></div>
+        <div class="col"><div class="card shadow-sm stat-card h-100 border-success border-start border-3"><div class="card-body text-center p-2"><h6 class="text-muted mb-1">存储</h6>{%if storages%}<h4 class="mb-1">{{storages[0].percent}}%</h4><div class="progress" style="height:4px"><div class="progress-bar bg-success" style="width:{{storages[0].percent}}%"></div></div><small class="text-truncate d-block">{{storages[0].storage}}</small>{%else%}<h4>N/A</h4>{%endif%}</div></div></div>
+        <div class="col"><div class="card shadow-sm stat-card h-100 border-success border-start border-3"><div class="card-body text-center p-2"><h6 class="text-muted mb-1">运行中</h6><h4 class="mb-1">{{running_count}}</h4><small>在线桌面</small></div></div></div>
+        <div class="col"><div class="card shadow-sm stat-card h-100 border-danger border-start border-3"><div class="card-body text-center p-2"><h6 class="text-muted mb-1">已关机</h6><h4 class="mb-1">{{stopped_count}}</h4><small>离线桌面</small></div></div></div>
+        <div class="col"><div class="card shadow-sm stat-card h-100 border-secondary border-start border-3"><div class="card-body text-center p-2"><h6 class="text-muted mb-1">模板</h6><h4 class="mb-1">{{templates|length}}</h4><small>可用模板</small></div></div></div>
+    </div>
+
+    <!-- 存储详情（折叠） -->
+    <div class="row mb-4"><div class="col-12"><div class="card shadow-sm"><div class="card-header py-1 d-flex justify-content-between" data-bs-toggle="collapse" data-bs-target="#storageDetails" style="cursor:pointer"><strong>存储详情</strong><small>点击展开/收起</small></div><div class="collapse show" id="storageDetails"><div class="card-body p-2"><div class="row">{%for st in storages%}<div class="col-md-4 mb-2"><div class="d-flex justify-content-between"><strong>{{st.storage}}</strong><small>{{st.percent}}%</small></div><div class="progress" style="height:4px"><div class="progress-bar bg-success" style="width:{{st.percent}}%"></div></div><small class="text-muted">已用{{st.used_str}}/总计{{st.total_str}}|剩余{{st.avail_str}}</small></div>{%endfor%}</div></div></div></div></div>
+
+    <!-- 创建桌面（折叠） -->
+    <div class="card mb-4"><div class="card-header py-2 d-flex justify-content-between" data-bs-toggle="collapse" data-bs-target="#addForm" style="cursor:pointer"><strong>创建新桌面</strong><small>点击展开/收起</small></div><div class="collapse" id="addForm"><div class="card-body"><form method="post" action="/add">
+        <div class="row mb-2"><div class="col-md-4"><input name="guac_username" class="form-control" placeholder="Guacamole登录用户名" required></div><div class="col-md-4"><input type="password" name="guac_password" class="form-control" placeholder="Guacamole登录密码" required></div><div class="col-md-4"><small class="text-muted">此账号用于登录Guacamole门户</small></div></div>
+        <div class="row mb-2"><div class="col-md-4"><input name="vm_username" class="form-control" placeholder="虚拟机系统用户名" required></div><div class="col-md-4"><input type="password" name="vm_password" class="form-control" placeholder="虚拟机系统密码" required></div><div class="col-md-4"><small class="text-muted">用于RDP连接</small></div></div>
+        <div class="row"><div class="col-md-2 mb-2"><input name="vmname" class="form-control" placeholder="连接/VM名称" required></div><div class="col-md-1 mb-2"><input name="vmid" type="number" class="form-control" placeholder="VMID" required></div>
+        <div class="col-md-2 mb-2"><select name="template" class="form-select" required><option value="">选择模板</option>{%for tpl in templates%}<option value="{{tpl.vmid}}">{{tpl.name}}(ID{{tpl.vmid}})</option>{%endfor%}</select></div>
+        <div class="col-md-2 mb-2"><select name="storage" class="form-select"><option value="">默认存储</option>{%for st in storages%}<option value="{{st.storage}}">{{st.storage}}({{st.type}})</option>{%endfor%}</select></div>
+        <div class="col-md-2 mb-2"><select name="clone_mode" class="form-select"><option value="link">链接克隆</option><option value="full">完整克隆</option></select></div></div>
+        <div class="row"><div class="col-md-2 mb-2"><select name="ip_mode" class="form-select" onchange="toggleManualIP(this)"><option value="auto">自动获取IP</option><option value="manual">手动指定IP</option></select></div>
+        <div class="col-md-2 mb-2" id="manual_ip_div" style="display:none"><input name="manual_ip" class="form-control" placeholder="输入IP地址"></div>
+        <div class="col-md-2 mb-2"><select name="security_mode" class="form-select"><option value="any">任意(any)</option><option value="rdp">RDP</option><option value="nla">NLA</option><option value="tls">TLS</option></select></div>
+        <div class="col-md-2 mb-2"><small class="text-muted">安全模式(默认any)</small></div><div class="col-md-1 mb-2"><button type="submit" class="btn btn-success w-100">创建</button></div></div></form></div></div></div>
+
+    <!-- 批量创建（折叠） -->
+    <div class="card mb-4"><div class="card-header py-2 d-flex justify-content-between" data-bs-toggle="collapse" data-bs-target="#batchForm" style="cursor:pointer"><strong>批量创建桌面(上传CSV)</strong><small>点击展开/收起</small></div><div class="collapse" id="batchForm"><div class="card-body"><form method="post" action="/batch_add" enctype="multipart/form-data"><div class="row"><div class="col-md-4"><input type="file" name="csv_file" class="form-control" accept=".csv" required></div><div class="col-md-2"><button type="submit" class="btn btn-primary">批量创建</button></div><div class="col-md-2"><button type="button" class="btn btn-outline-secondary" onclick="downloadSampleCSV()">下载模板</button></div></div></form></div></div></div>
+
+    <!-- 定时任务（折叠） ****** 关键修改：下拉选项值 ****** -->
+    <div class="card mb-4"><div class="card-header py-2 d-flex justify-content-between" data-bs-toggle="collapse" data-bs-target="#scheduleForm" style="cursor:pointer"><strong>设置定时任务</strong><div><button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="loadSchedules()">查看所有任务</button><small>点击展开/收起</small></div></div><div class="collapse" id="scheduleForm"><div class="card-body"><form method="post" action="/schedule"><div class="row">
+        <div class="col-md-3"><input name="vmname" class="form-control" placeholder="桌面连接名称" required></div><div class="col-md-2"><input name="vmid" type="number" class="form-control" placeholder="VMID" required></div>
+        <div class="col-md-2">
+            <select name="schedule_action" class="form-select">
+                <option value="startup">定时开机</option>
+                <option value="shutdown">定时关机</option>
+                <option value="snapshot">创建快照</option>
+                <option value="destroy">定时销毁</option>
+            </select>
+        </div>
+        <div class="col-md-3"><input name="execute_at" type="datetime-local" class="form-control" required></div>
+        <div class="col-md-2"><button type="submit" class="btn btn-primary">设置</button></div>
+    </div></form></div></div></div>
+
+    <!-- 桌面列表（折叠，默认展开） -->
+    <div class="card"><div class="card-header py-2 d-flex justify-content-between" data-bs-toggle="collapse" data-bs-target="#desktopList" style="cursor:pointer"><strong>已有桌面({{desktops|length}})</strong><div class="d-flex align-items-center"><label class="me-2 mb-0 small">每页显示</label><select id="pageSizeSelect" class="form-select form-select-sm" style="width:auto" onchange="changePageSize()" onclick="event.stopPropagation()"><option value="5">5</option><option value="10" selected>10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select><small class="text-muted ms-2">点击收起</small></div></div><div class="collapse show" id="desktopList"><div class="card-body p-0"><table class="table table-striped mb-0" id="desktopTable"><thead><tr><th>连接名</th><th>用户</th><th>IP</th><th>VMID</th><th>状态</th><th>操作</th></tr></thead><tbody>
+    {%for d in desktops%}<tr class="desktop-row"><td><a href="{{guac_config.protocol}}://{{guac_config.host}}{%if guac_config.port%}:{{guac_config.port}}{%endif%}{{guac_config.path}}" target="_blank">{{d.connection_name}}</a></td><td>{{d.username or '未授权'}}</td><td>{{d.ip or 'N/A'}}</td><td>{{d.vmid or 'N/A'}}</td><td>{%if d.status=='running'%}<span class="badge bg-success">运行中</span>{%elif d.status=='stopped'%}<span class="badge bg-danger">已关机</span>{%else%}<span class="badge bg-secondary">{{d.status}}</span>{%endif%}</td><td>{%if d.vmid and d.vmid!='N/A'%}<form method="post" action="/power" style="display:inline"><input type="hidden" name="vmid" value="{{d.vmid}}"><input type="hidden" name="action" value="start"><button class="btn btn-sm btn-success" {%if d.status=='running'%}disabled{%endif%}>开机</button></form><form method="post" action="/power" style="display:inline"><input type="hidden" name="vmid" value="{{d.vmid}}"><input type="hidden" name="action" value="stop"><button class="btn btn-sm btn-warning" {%if d.status!='running'%}disabled{%endif%}>关机</button></form>{%else%}<span class="text-muted">缺VMID</span>{%endif%}<button type="button" class="btn btn-sm btn-secondary ms-1" onclick="showSnapshots({{d.vmid}})">快照</button><button type="button" class="btn btn-sm btn-info ms-1" data-bs-toggle="modal" data-bs-target="#editModal" data-conn-id="{{d.connection_id}}" data-ip="{{d.ip}}" data-vm-username="{{d.vm_username}}" data-security="{{d.security_mode}}" data-guac-username="{{d.username}}">修改</button><form method="post" action="/delete" style="display:inline"><input type="hidden" name="vmname" value="{{d.connection_name}}"><input type="hidden" name="vmid" value="{{d.vmid if d.vmid else ''}}"><button type="submit" class="btn btn-danger btn-sm ms-1">删除</button></form></td></tr>{%endfor%}
+    </tbody></table><nav class="m-3"><ul class="pagination pagination-sm justify-content-center" id="pagination"></ul></nav></div></div></div></div>
+
+<!-- 修改模态框 -->
+<div class="modal fade" id="editModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form method="post" action="/update"><div class="modal-header"><h5>修改桌面连接</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" name="conn_id" id="edit-conn-id"><div class="mb-3"><label>Guacamole用户名</label><input type="text" class="form-control" name="guac_username" id="edit-guac-username" required></div><div class="mb-3"><label>Guacamole密码(留空不修改)</label><input type="password" class="form-control" name="guac_password" placeholder="输入新密码"></div><hr><div class="mb-3"><label>IP地址</label><input type="text" class="form-control" name="ip" id="edit-ip" required></div><div class="mb-3"><label>虚拟机用户名</label><input type="text" class="form-control" name="vm_username" id="edit-vm-username" required></div><div class="mb-3"><label>虚拟机密码(留空不修改)</label><input type="password" class="form-control" name="vm_password" placeholder="输入新密码"></div><div class="mb-3"><label>安全模式</label><select name="security_mode" class="form-select" id="edit-security"><option value="any">任意</option><option value="rdp">RDP</option><option value="nla">NLA</option><option value="tls">TLS</option></select></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="submit" class="btn btn-primary">保存</button></div></form></div></div></div>
+
+<!-- 快照弹窗 -->
+<div class="modal fade" id="snapshotModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>快照管理-VMID:<span id="snapshot-vmid"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form method="post" action="/snapshot"><input type="hidden" name="vmid" id="snapshot-vmid-input"><input type="hidden" name="action" value="create"><button type="submit" class="btn btn-success btn-sm mb-3">创建新快照</button></form><h6>已有快照</h6><div id="snapshot-list"><div class="text-muted">加载中...</div></div></div></div></div></div>
+
+<!-- 定时任务弹窗 -->
+<div class="modal fade" id="schedulesModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5>定时任务列表</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><table class="table table-striped"><thead><tr><th>ID</th><th>桌面</th><th>VMID</th><th>操作</th><th>执行时间</th><th>状态</th><th>操作</th></tr></thead><tbody id="schedules-tbody"><tr><td colspan="7">加载中...</td></tr></tbody></table></div></div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const GUAC_BASE="{{guac_config.protocol}}://{{guac_config.host}}{%if guac_config.port%}:{{guac_config.port}}{%endif%}{{guac_config.path}}";
+function toggleManualIP(s){document.getElementById("manual_ip_div").style.display=s.value==="manual"?"block":"none"}
+var editModal=document.getElementById('editModal');editModal.addEventListener('show.bs.modal',function(e){var b=e.relatedTarget;document.getElementById('edit-conn-id').value=b.getAttribute('data-conn-id');document.getElementById('edit-ip').value=b.getAttribute('data-ip')||'';document.getElementById('edit-vm-username').value=b.getAttribute('data-vm-username')||'';document.getElementById('edit-guac-username').value=b.getAttribute('data-guac-username')||'';document.querySelector('#editModal input[name="guac_password"]').value='';document.querySelector('#editModal input[name="vm_password"]').value='';var s=b.getAttribute('data-security')||'any',sel=document.getElementById('edit-security');for(var i=0;i<sel.options.length;i++)if(sel.options[i].value===s){sel.selectedIndex=i;break}});
+function showSnapshots(vmid){document.getElementById('snapshot-vmid').innerText=vmid;document.getElementById('snapshot-vmid-input').value=vmid;var f=new FormData();f.append('vmid',vmid);f.append('action','list');fetch('/snapshot',{method:'POST',body:f}).then(r=>r.json()).then(d=>{var h='';if(d.length===0)h='<div class="text-muted">暂无快照</div>';else d.forEach(s=>{h+='<div class="d-flex justify-content-between mb-2"><div><strong>'+s.name+'</strong></div><div><form method="post" action="/snapshot" style="display:inline"><input type="hidden" name="vmid" value="'+vmid+'"><input type="hidden" name="action" value="rollback"><input type="hidden" name="snapname" value="'+s.name+'"><button class="btn btn-sm btn-warning">回滚</button></form> <form method="post" action="/snapshot" style="display:inline"><input type="hidden" name="vmid" value="'+vmid+'"><input type="hidden" name="action" value="delete"><input type="hidden" name="snapname" value="'+s.name+'"><button class="btn btn-sm btn-danger">删除</button></form></div></div>'});document.getElementById('snapshot-list').innerHTML=h;new bootstrap.Modal(document.getElementById('snapshotModal')).show()})}
+
+// ****** 关键修改：loadSchedules 函数中的操作映射 ******
+function loadSchedules() {
+    var m = new bootstrap.Modal(document.getElementById('schedulesModal'));
+    m.show();
+    fetch('/api/schedules').then(r => r.json()).then(d => {
+        var t = document.getElementById('schedules-tbody');
+        if (d.error) { t.innerHTML = '<tr><td colspan="7" class="text-danger">' + d.error + '</td></tr>'; return; }
+        if (d.length === 0) { t.innerHTML = '<tr><td colspan="7" class="text-center">暂无定时任务</td></tr>'; return; }
+        var h = '';
+        d.forEach(s => {
+            var ab, an;
+            if (s.action === 'startup') { ab = 'success'; an = '开机'; }
+            else if (s.action === 'shutdown') { ab = 'warning'; an = '关机'; }
+            else if (s.action === 'snapshot') { ab = 'info'; an = '快照'; }
+            else if (s.action === 'destroy') { ab = 'danger'; an = '销毁'; }
+            else { ab = 'secondary'; an = s.action; }
+            var ut = new Date(s.execute_at + ' UTC');
+            var lt = ut.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+            h += '<tr><td>' + s.id + '</td><td>' + (s.connection_name || '已删除') + '</td><td>' + s.vmid + '</td>';
+            h += '<td><span class="badge bg-' + ab + '">' + an + '</span></td>';
+            h += '<td>' + lt + '</td>';
+            h += '<td><span class="badge bg-' + (s.executed ? 'success' : 'info') + '">' + (s.executed ? '已执行' : '等待中') + '</span></td>';
+            h += '<td>';
+            if (!s.executed) h += '<button class="btn btn-sm btn-danger" onclick="deleteSchedule(' + s.id + ')">删除</button>';
+            h += '</td></tr>';
+        });
+        t.innerHTML = h;
+    });
+}
+
+function deleteSchedule(id){if(!confirm('确认删除?'))return;var f=new FormData();f.append('schedule_id',id);fetch('/schedule/delete',{method:'POST',body:f}).then(()=>{loadSchedules();location.reload()})}
+function downloadSampleCSV(){var c="guac_username,guac_password,vm_username,vm_password,vmname,vmid,template,clone_mode,ip_mode,manual_ip,security_mode\n";c+="alice,pass123,administrator,admin123,desk-alice,201,100,full,manual,192.168.1.101,any\n";c+="bob,pass456,administrator,admin123,desk-bob,202,100,full,manual,192.168.1.102,any";var b=new Blob([c],{type:'text/csv'});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="template.csv";a.click()}
+var rows=document.querySelectorAll("#desktopTable tbody tr.desktop-row"),totalRows=rows.length,pageSize=10,currentPage=1;
+function showPage(p){var s=(p-1)*pageSize,e=s+pageSize;rows.forEach((r,i)=>{r.style.display=(i>=s&&i<e)?"":"none"});updatePagination()}
+function updatePagination(){var t=Math.ceil(totalRows/pageSize),pg=document.getElementById("pagination");pg.innerHTML="";if(t<=1)return;var pl=document.createElement("li");pl.className="page-item"+(currentPage===1?" disabled":"");var plk=document.createElement("a");plk.className="page-link";plk.innerText="«";plk.onclick=()=>{if(currentPage>1){currentPage--;showPage(currentPage)}};pl.appendChild(plk);pg.appendChild(pl);for(var i=Math.max(1,currentPage-3),end=Math.min(t,currentPage+3);i<=end;i++){var li=document.createElement("li");li.className="page-item"+(i===currentPage?" active":"");var lk=document.createElement("a");lk.className="page-link";lk.innerText=i;lk.onclick=(function(p){return function(){currentPage=p;showPage(p)}})(i);li.appendChild(lk);pg.appendChild(li)}var nl=document.createElement("li");nl.className="page-item"+(currentPage===t?" disabled":"");var nlk=document.createElement("a");nlk.className="page-link";nlk.innerText="»";nlk.onclick=()=>{if(currentPage<t){currentPage++;showPage(currentPage)}};nl.appendChild(nlk);pg.appendChild(nl)}
+function changePageSize(){pageSize=parseInt(document.getElementById("pageSizeSelect").value);currentPage=1;showPage(1)}
+if(totalRows>0)showPage(1);
+</script>
+</body>
+</html>
