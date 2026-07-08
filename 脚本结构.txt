@@ -1,0 +1,10 @@
+/opt/vdi-deploy/
+├── install.sh                # 主控菜单
+├── config.env                # 配置文件（自动生成）
+├── modules/
+│   ├── 01-system.sh          # 系统初始化 + 阿里云镜像源
+│   ├── 02-docker.sh          # Docker 安装（多源切换）
+│   ├── 03-guacamole.sh       # Guacamole 容器部署
+│   ├── 04-database.sh        # 数据库扩展表创建
+│   ├── 05-vdi-web.sh         # VDI Web 部署（含启动验证）
+│   └── 06-nginx.sh           # Nginx 反向代理配置
