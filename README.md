@@ -42,25 +42,7 @@ VDI 云桌面平台 —— 完整系统架构
                               └─────────────────────────────┘
 
 
-部署结构（/opt/vdi-deploy/）：
-├── install.sh                ← 主控菜单
-├── config.env                ← 用户编辑的配置文件
-├── app.py                    ← Flask 应用（用户提供）
-├── templates/                ← HTML 模板（用户提供）
-├── modules/
-│   ├── 01-system.sh
-│   ├── 02-docker.sh
-│   ├── 03-guacamole.sh
-│   ├── 04-database.sh
-│   ├── 05-vdi-web.sh
-│   └── 06-nginx.sh
-├── guacamole/
-│   ├── docker-compose.yml
-│   └── init/
-│       └── initdb.sql
-└── vdi-web/
-    ├── config.yaml           ← 自动生成的 Flask 配置
-    └── venv/                 ← Python 虚拟环境
+
 核心交互流
 管理员/用户 通过浏览器访问 Nginx 80 端口。
 
