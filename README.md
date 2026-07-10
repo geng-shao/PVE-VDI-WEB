@@ -7,6 +7,7 @@ VDI 云桌面平台 —— 完整系统架构
 1.7Beta系统功能介绍演示：https://www.bilibili.com/video/BV1svTX6yEGn/?share_source=copy_web&vd_source=a896bbdb2a1fe4d445abf5537de01aac
 
 1.8Beta系统功能介绍演示：https://www.bilibili.com/video/BV1fsNj6ZEwZ/
+
 1.8Beta版本升级内容：批量操作、用户自助申请、管理员审批、增加物理主机、外部主机添加、用户访问门户，使用统计等功能。
 
 声明：所用到的部分开源软件，未作任何修改，仅作环境集成
