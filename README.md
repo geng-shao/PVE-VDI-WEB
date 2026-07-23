@@ -21,6 +21,10 @@ V1.7一键升级到V1.8Beta版升级安装教程https://www.bilibili.com/video/B
 
 2.0Beta版升级教程 v1.8一键升级到V2.0演示https://www.bilibili.com/video/BV19eK36gEad/
 
+2.1版本安装和功能演示：https://www.bilibili.com/video/BV1EjK86vEkx/
+
+2.1Windows和linux客户端功能演示：https://www.bilibili.com/video/BV1SXgk6AEoC/
+
 1.8Beta版本升级内容：批量操作、用户自助申请、管理员审批、增加物理主机、外部主机添加、用户访问门户，使用统计等功能。
 
 声明：所用到的部分开源软件，未作任何修改，仅作环境集成
@@ -40,6 +44,39 @@ V1.7一键升级到V1.8Beta版升级安装教程https://www.bilibili.com/video/B
 6	多租户隔离	        不同租户的数据完全隔离，管理员仅能管理自己租户的资源
 7	桌面性能监控	        实时查看每个桌面的CPU、内存、磁盘IO、网络流量趋势图
 
+
+ 2.1 模板目录功能列表（共 14 个）
+
+2.1 服务器部署目录（`/opt/vdi-deploy/`）
+
+```
+/opt/vdi-deploy/
+├── vdi-web/                          # Web 应用主目录
+│   ├── app.py                        # 后端主程序（全部路由与业务逻辑）
+│   ├── config.yaml                   # 配置文件（Proxmox/DB/Guacamole/Web/Email）
+│   └── templates/                    # Jinja2 HTML 模板（共 14 个）
+├── backups/                          # 备份目录（升级脚本自动生成）
+│   ├── pre_upgrade_final_v*/         #   升级前自动备份（app.py/templates/config/db）
+│   └── vdi_backup_*.sql.gz           #   手动数据库备份
+└── config.env                        # 数据库环境变量（部分部署方式使用）
+ 
+
+| 模板 | 对应页面 / 功能 |
+|------|----------------|
+| `index.html` | 管理首页：桌面列表（含「系统」列、批量删除后搜索框、前50条提示）、创建/批量操作、定时任务弹窗（富化列+最近7天+分页+查看全部）、顶部导航 |
+| `login.html` | 管理员登录页 |
+| `tenant.html` | 租户管理：增删租户、分配/编辑/禁用/重置租户管理员 |
+| `notify.html` | 通知配置：Webhook/SMTP、事件勾选、测试发送、通知日志 |
+| `groups.html` | 分组管理：增删改 + 租户归属 |
+| `nodes.html` | 节点管理：增删改 + 租户归属 |
+| `performance.html` | 性能监控：节点概览 + VM 详情 + 趋势图（按租户过滤） |
+| `stats.html` | 使用统计：多维分析（按租户过滤） |
+| `backup.html` | 备份管理：手动/恢复/下载 |
+| `approve.html` | 桌面申请审批页（搜索 + 分页 + 租户隔离） |
+| `request.html` | 用户桌面申请提交页 |
+| `audit.html` | **新增**：审计日志页（操作人/动作/目标/详情/IP/时间；超管可删除；搜索+分页；租户隔离） |
+| `schedule_list.html` | **新增**：定时任务独立管理页（设定人/分组/用户/IP/系统/节点；搜索+分页；租户隔离） |
+| `desktop_list.html` | **新增**：桌面主机独立列表页（系统列；搜索+分页；租户隔离） |
 
 微信交流：
 ![image](https://github.com/geng-shao/PVE-VDI-WEB/blob/main/wx.png)
